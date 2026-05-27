@@ -5,19 +5,32 @@ import pandas as pd
 from collections import Counter
 import re
 
-st.set_page_config(page_title="Global-Local EV & Battery Trend", layout="wide")
+st.set_page_config(page_title="EV Trend & Issue Radar", layout="wide")
 
-st.title("🔋 Global-Local EV & Battery Tech Trend Detector")
-st.write("Memantau tren Kendaraan Listrik & Baterai dari Media (Antara, CNBC, Xinhua) dan Data Penjualan Nasional.")
+st.title("🔋 EV Market Trend & Critical Issue Radar")
+st.write("Memantau tren pasar, penjualan, dan mendeteksi isu kritis (kebakaran/sparepart) pada seluruh merek EV di Indonesia.")
 
-# --- DAFTAR MEREK CHINA ---
-china_car_brands = ["byd", "wuling", "chery", "neta", "aion", "gwm", "baic", "omoda", "binguo", "cloudev"]
-china_bike_brands = ["yadea", "aima", "sunra", "davigo", "viar", "zongshen"]
-all_china_brands = china_car_brands + china_bike_brands
+# --- 1. DAFTAR MEREK SUPER LENGKAP (INDONESIA) ---
+car_brands = [
+    "wuling", "byd", "hyundai", "ioniq", "kona", "chery", "omoda", "neta", 
+    "aion", "gwm", "baic", "mg", "morris garages", "dfsk", "seres", "vinfast", 
+    "kia", "ev6", "ev9", "tesla", "toyota", "bz4x", "binguo", "cloudev"
+]
+bike_brands = [
+    "gesits", "alva", "polytron", "volta", "smoot", "selis", "rakata", "united", 
+    "tangkas", "uwinfly", "yadea", "aima", "sunra", "davigo", "viar", "zongshen", "honda em1"
+]
+all_brands = car_brands + bike_brands
 
-# --- DATA PENJUALAN GAIKINDO & AISI (Data Historis Tahunan) ---
+# --- 2. KATA KUNCI ISU KRITIS (KEBAKARAN & SPAREPART) ---
+issue_keywords = [
+    "terbakar", "kebakaran", "meledak", "api", "hangus", 
+    "sparepart", "suku cadang", "komponen", "langka", "sulit", 
+    "inden", "recall", "rusak", "keluhan", "bengkel", "baterai drop"
+]
+
+# --- 3. DATA PENJUALAN ---
 def get_sales_data():
-    # Data rekapitulasi disederhanakan berdasarkan laporan Gaikindo (Mobil) dan AISI (Motor)
     data = {
         "Tahun": ["2022", "2023", "2024", "2025", "2026 (Est)"],
         "Mobil Listrik (Unit)": [10327, 17051, 38000, 75000, 110000],
@@ -25,168 +38,113 @@ def get_sales_data():
     }
     return pd.DataFrame(data)
 
-# Fungsi penerjemah otomatis
+# Fungsi Terjemahan
 def translate_to_id(text):
-    if not text:
-        return ""
+    if not text: return ""
     try:
         url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=id&dt=t&q={requests.utils.quote(text)}"
-        response = requests.get(url, timeout=5)
-        if response.status_code == 200:
-            result = response.json()
-            translated_text = "".join([sentence[0] for sentence in result[0] if sentence[0]])
-            return translated_text
-    except Exception:
-        pass
+        res = requests.get(url, timeout=5)
+        if res.status_code == 200:
+            return "".join([s[0] for s in res.json()[0] if s[0]])
+    except: pass
     return text 
 
-# 1. FUNGSI AMBIL DATA MULTI-MEDIA
+# FUNGSI AMBIL DATA BERITA
 @st.cache_data(ttl=1800)
 def fetch_global_local_news():
     sources = {
         "Antara Otomotif": "https://www.antaranews.com/rss/otomotif.xml",
         "Antara Tekno": "https://www.antaranews.com/rss/tekno.xml",
-        "Antara Ekonomi": "https://www.antaranews.com/rss/ekonomi-bisnis.xml",
         "CNBC Industri": "https://www.cnbcindonesia.com/news/rss",
-        "Xinhua China (Sci-Tech)": "https://www.xinhuanet.com/english/rss/scitechrss.xml"
+        "Xinhua China": "https://www.xinhuanet.com/english/rss/scitechrss.xml"
     }
-    
-    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    headers = {'User-Agent': 'Mozilla/5.0'}
     articles = []
     
     for name, url in sources.items():
         try:
-            response = requests.get(url, headers=headers, timeout=10)
-            if response.status_code == 200:
-                root = ET.fromstring(response.content)
+            res = requests.get(url, headers=headers, timeout=10)
+            if res.status_code == 200:
+                root = ET.fromstring(res.content)
                 for item in root.findall('.//item'):
-                    title = item.find('title').text if item.find('title') is not None else ""
-                    desc = item.find('description').text if item.find('description') is not None else ""
-                    link = item.find('link').text if item.find('link') is not None else ""
-                    
+                    t = item.find('title').text or ""
+                    d = item.find('description').text or ""
+                    l = item.find('link').text or ""
                     if "Xinhua" in name:
-                        title = translate_to_id(title)
-                        desc = translate_to_id(desc)
-                        
-                    articles.append({
-                        "title": title, 
-                        "description": desc, 
-                        "link": link,
-                        "source": name
-                    })
-        except Exception:
-            continue
+                        t = translate_to_id(t)
+                        d = translate_to_id(d)
+                    articles.append({"title": t, "description": d, "link": l, "source": name})
+        except: continue
     return articles
 
-# 2. FUNGSI ANALISIS TEKS
-def analyze_ev_trends(articles):
+# FUNGSI ANALISIS TEKS
+def analyze_trends(articles):
     all_words = []
-    categorized_data = {
-        "Mobil Listrik (EV)": 0,
-        "Motor Listrik (EV Roda Dua)": 0,
-        "Teknologi Baterai (LFP/Lithium)": 0,
-        "Pabrikan China di Indonesia": 0,
-        "Infrastruktur & Komponen": 0
-    }
+    critical_issues_found = []
     
-    # KATA DIBUANG: "menetapkan", "listrik" (karena akan digabung dengan mobil/motor)
-    stopwords = {
-        "dan", "yang", "di", "ke", "dari", "ini", "itu", "untuk", "dengan", "adalah", "dalam", 
-        "bisa", "pada", "juga", "sudah", "ada", "raya", "jakarta", "indonesia", "tahun", "bulan",
-        "hari", "menurut", "mengatakan", "bahwa", "tersebut", "akan", "banyak", "menjadi", "kamis",
-        "selasa", "rabu", "senin", "jumat", "sabtu", "minggu", "berita", "mengungkapkan", "dilansir",
-        "menetapkan", "listrik" 
-    }
+    stopwords = {"dan", "yang", "di", "ke", "dari", "ini", "itu", "untuk", "dengan", "adalah", "dalam", "bisa", "pada", "juga", "sudah", "ada", "indonesia", "tahun", "menetapkan", "listrik"}
 
     for art in articles:
         text = (art['title'] + " " + art['description']).lower()
         
-        # Klasifikasi Kategori
-        if any(w in text for w in all_china_brands) or "china" in text or "tiongkok" in text:
-            if any(x in text for x in ["motor", "roda dua", "yadea", "aima", "sunra", "davigo"]):
-                categorized_data["Motor Listrik (EV Roda Dua)"] += 1
-            elif any(x in text for x in ["listrik", "ev", "baterai", "mobil", "pabrik"]):
-                categorized_data["Pabrikan China di Indonesia"] += 1
-            else:
-                categorized_data["Infrastruktur & Komponen"] += 1
-        elif any(w in text for w in ["mobil listrik", "ev", "hyundai", "tesla", "ioniq", "toyota"]):
-            categorized_data["Mobil Listrik (EV)"] += 1
-        elif any(w in text for w in ["motor listrik", "moped", "gesits", "alva", "polytron", "honda"]):
-            categorized_data["Motor Listrik (EV Roda Dua)"] += 1
-        elif any(w in text for w in ["baterai", "battery", "lfp", "lifepo4", "lithium", "ncm", "solid-state", "sel", "pack"]):
-            categorized_data["Teknologi Baterai (LFP/Lithium)"] += 1
-        else:
-            categorized_data["Infrastruktur & Komponen"] += 1
+        # DETEKSI ISU KRITIS (Apakah ada kata merek DAN kata masalah/isu?)
+        has_brand = any(b in text for b in all_brands)
+        has_issue = any(i in text for i in issue_keywords)
+        
+        if has_brand and has_issue:
+            critical_issues_found.append(art)
 
-        # Ekstraksi Kata Kunci
+        # Hitung kata kunci
         words = re.findall(r'\b\w+\b', text)
-        for word in words:
-            if len(word) > 2 and word not in stopwords and not word.isdigit():
+        for w in words:
+            if len(w) > 2 and w not in stopwords and not w.isdigit():
+                if w == "mobil": w = "mobil listrik"
+                elif w in ["motor", "motors"]: w = "motor listrik"
+                elif w in ["baterai", "battery"]: w = "baterai"
                 
-                # NORMALISASI KATA KUNCI (Mengganti kata tunggal menjadi frasa)
-                if word == "mobil":
-                    word = "mobil listrik"
-                elif word in ["motor", "motors"]:
-                    word = "motor listrik"
-                elif word in ["baterai", "battery"]:
-                    word = "baterai"
-                elif word in ["china", "tiongkok"]:
-                    word = "china"
-
-                valid_keywords = ["mobil listrik", "motor listrik", "ev", "lfp", "lifepo", "lithiu", "charg", "nikel", "china"] + all_china_brands
+                valid = ["mobil listrik", "motor listrik", "ev", "lfp", "lithium", "sparepart", "terbakar"] + all_brands
+                if any(k in w for k in valid) or w == "baterai":
+                    all_words.append(w)
                 
-                if any(k in word for k in valid_keywords) or word == "baterai":
-                    all_words.append(word)
-                
-    return Counter(all_words).most_common(10), categorized_data
+    return Counter(all_words).most_common(12), critical_issues_found
 
 # --- RUN APLIKASI ---
-# 1. Menampilkan Grafik Penjualan (Data Statis Gaikindo/AISI)
-st.subheader("📈 Tren Penjualan EV Indonesia (Data Gaikindo & AISI)")
-df_sales = get_sales_data()
-st.line_chart(df_sales.set_index("Tahun"), use_container_width=True)
-with st.expander("Lihat Tabel Data Penjualan (Unit)"):
-    st.dataframe(df_sales, use_container_width=True)
+# 1. Grafik Penjualan
+st.subheader("📈 Tren Penjualan EV (Gaikindo & AISI)")
+st.line_chart(get_sales_data().set_index("Tahun"), use_container_width=True)
 
 st.write("---")
-
-# 2. Menampilkan Analitik Berita Real-time
 data_berita = fetch_global_local_news()
 
 if data_berita:
-    top_words, categories = analyze_ev_trends(data_berita)
+    top_words, critical_issues = analyze_trends(data_berita)
     
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("🔥 Kata Kunci Terhangat")
-        if top_words:
-            df_words = pd.DataFrame(top_words, columns=['Kata Kunci', 'Frekuensi'])
-            st.bar_chart(df_words.set_index('Kata Kunci'))
-            st.dataframe(df_words, use_container_width=True)
-        else:
-            st.info("Belum ada kata kunci spesifik EV yang mendominasi saat ini.")
-        
-    with col2:
-        st.subheader("📁 Pembagian Sektor Tren")
-        df_cat = pd.DataFrame(list(categories.items()), columns=['Sektor', 'Jumlah Berita'])
-        st.bar_chart(df_cat.set_index('Sektor'), color="#00CC66")
-        st.dataframe(df_cat, use_container_width=True)
+    # 2. RADAR ISU KRITIS (Tampil paling atas jika ada masalah!)
+    if critical_issues:
+        st.error(f"🚨 **PERINGATAN: Ditemukan {len(critical_issues)} berita mengenai Isu Kritis (Kebakaran / Kelangkaan Sparepart) pada EV!**")
+        with st.expander("Buka Detail Isu Kritis", expanded=True):
+            for art in critical_issues[:5]:
+                st.markdown(f"**[{art['source']}] {art['title']}**")
+                st.write(art['description'])
+                st.markdown(f"[Baca Selengkapnya]({art['link']})")
+                st.write("---")
+    else:
+        st.success("✅ Terpantau Aman: Tidak ada laporan terbaru mengenai kebakaran EV atau krisis sparepart dari media saat ini.")
 
-    # 3. Menampilkan Feed Berita Terkait
-    st.write("---")
-    st.subheader("📰 Feed Berita Terintegrasi")
+    # 3. Dasbor Tren Umum
+    st.subheader("🔥 Top 12 Merek & Kata Kunci Terhangat")
+    if top_words:
+        df_words = pd.DataFrame(top_words, columns=['Kata Kunci', 'Frekuensi'])
+        st.bar_chart(df_words.set_index('Kata Kunci'))
     
-    keywords_filter = ["listrik", "baterai", "ev", "motor", "mobil", "china", "tiongkok", "battery"] + all_china_brands
-    ev_articles = [a for a in data_berita if any(w in (a['title'] + a['description']).lower() for w in keywords_filter)]
+    st.write("---")
+    st.subheader("📰 Feed Berita Ekosistem EV Terkini")
+    ev_articles = [a for a in data_berita if any(w in (a['title'] + a['description']).lower() for w in ["listrik", "baterai", "ev", "sparepart"] + all_brands)]
     
     if ev_articles:
-        for art in ev_articles[:15]: 
+        for art in ev_articles[:10]: 
             st.markdown(f"**[{art['source']}] {art['title']}**")
-            st.write(art['description'])
-            st.markdown(f"[Baca Sumber Asli]({art['link']})")
+            st.markdown(f"[Link Sumber]({art['link']})")
             st.write("---")
-    else:
-        st.info("Sedang tidak ada artikel spesifik ekosistem EV dalam beberapa jam terakhir.")
 else:
-    st.error("Gagal mengambil data dari server berita global maupun lokal.")
+    st.error("Gagal mengambil data dari server berita.")
