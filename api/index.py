@@ -16,22 +16,25 @@ def get_monthly_sales_data():
     }
     return pd.DataFrame(data)
 
-# --- 2. DATABASE JARAK TEMPUH ---
+# --- 2. DATABASE JARAK TEMPUH & SPESIFIKASI BATERAI ---
 def get_range_data():
     data = [
-        {"Merek & Tipe": "Wuling Air EV Long", "Kategori": "Mobil", "Klaim Pabrik (km)": 300, "Real YouTube (km)": 230},
-        {"Merek & Tipe": "Wuling Binguo", "Kategori": "Mobil", "Klaim Pabrik (km)": 410, "Real YouTube (km)": 340},
-        {"Merek & Tipe": "Hyundai Ioniq 5", "Kategori": "Mobil", "Klaim Pabrik (km)": 451, "Real YouTube (km)": 390},
-        {"Merek & Tipe": "BYD Atto 3", "Kategori": "Mobil", "Klaim Pabrik (km)": 480, "Real YouTube (km)": 410},
-        {"Merek & Tipe": "Neta V", "Kategori": "Mobil", "Klaim Pabrik (km)": 401, "Real YouTube (km)": 310},
-        {"Merek & Tipe": "Omoda E5", "Kategori": "Mobil", "Klaim Pabrik (km)": 430, "Real YouTube (km)": 370},
-        {"Merek & Tipe": "Alva One", "Kategori": "Motor", "Klaim Pabrik (km)": 70, "Real YouTube (km)": 50},
-        {"Merek & Tipe": "Alva Cervo", "Kategori": "Motor", "Klaim Pabrik (km)": 125, "Real YouTube (km)": 95},
-        {"Merek & Tipe": "Polytron Fox R", "Kategori": "Motor", "Klaim Pabrik (km)": 130, "Real YouTube (km)": 100},
-        {"Merek & Tipe": "Gesits G1", "Kategori": "Motor", "Klaim Pabrik (km)": 50, "Real YouTube (km)": 38},
-        {"Merek & Tipe": "Uwinfly T3", "Kategori": "Motor", "Klaim Pabrik (km)": 60, "Real YouTube (km)": 45},
-        {"Merek & Tipe": "Honda EM1 e:", "Kategori": "Motor", "Klaim Pabrik (km)": 41, "Real YouTube (km)": 32},
-        {"Merek & Tipe": "Yadea T9", "Kategori": "Motor", "Klaim Pabrik (km)": 100, "Real YouTube (km)": 75}
+        # Data Mobil
+        {"Merek & Tipe": "Wuling Air EV Long", "Kategori": "Mobil", "Klaim Pabrik (km)": 300, "Real YouTube (km)": 230, "Tipe Baterai": "LFP", "Voltase (V)": "115", "Kapasitas (Ah)": "232"},
+        {"Merek & Tipe": "Wuling Binguo", "Kategori": "Mobil", "Klaim Pabrik (km)": 410, "Real YouTube (km)": 340, "Tipe Baterai": "LFP", "Voltase (V)": "319", "Kapasitas (Ah)": "100"},
+        {"Merek & Tipe": "Hyundai Ioniq 5", "Kategori": "Mobil", "Klaim Pabrik (km)": 451, "Real YouTube (km)": 390, "Tipe Baterai": "Li-ion NMC", "Voltase (V)": "697", "Kapasitas (Ah)": "111"},
+        {"Merek & Tipe": "BYD Atto 3", "Kategori": "Mobil", "Klaim Pabrik (km)": 480, "Real YouTube (km)": 410, "Tipe Baterai": "LFP (Blade)", "Voltase (V)": "403", "Kapasitas (Ah)": "150"},
+        {"Merek & Tipe": "Neta V", "Kategori": "Mobil", "Klaim Pabrik (km)": 401, "Real YouTube (km)": 310, "Tipe Baterai": "LFP", "Voltase (V)": "385", "Kapasitas (Ah)": "105"},
+        {"Merek & Tipe": "Omoda E5", "Kategori": "Mobil", "Klaim Pabrik (km)": 430, "Real YouTube (km)": 370, "Tipe Baterai": "LFP", "Voltase (V)": "347", "Kapasitas (Ah)": "175"},
+        
+        # Data Motor
+        {"Merek & Tipe": "Alva One", "Kategori": "Motor", "Klaim Pabrik (km)": 70, "Real YouTube (km)": 50, "Tipe Baterai": "Lithium", "Voltase (V)": "60", "Kapasitas (Ah)": "45"},
+        {"Merek & Tipe": "Alva Cervo", "Kategori": "Motor", "Klaim Pabrik (km)": 125, "Real YouTube (km)": 95, "Tipe Baterai": "Lithium", "Voltase (V)": "73.8", "Kapasitas (Ah)": "48"},
+        {"Merek & Tipe": "Polytron Fox R", "Kategori": "Motor", "Klaim Pabrik (km)": 130, "Real YouTube (km)": 100, "Tipe Baterai": "LFP", "Voltase (V)": "72", "Kapasitas (Ah)": "52"},
+        {"Merek & Tipe": "Gesits G1", "Kategori": "Motor", "Klaim Pabrik (km)": 50, "Real YouTube (km)": 38, "Tipe Baterai": "Li-NMC", "Voltase (V)": "72", "Kapasitas (Ah)": "20"},
+        {"Merek & Tipe": "Uwinfly T3", "Kategori": "Motor", "Klaim Pabrik (km)": 60, "Real YouTube (km)": 45, "Tipe Baterai": "SLA (Aki)", "Voltase (V)": "60", "Kapasitas (Ah)": "20"},
+        {"Merek & Tipe": "Honda EM1 e:", "Kategori": "Motor", "Klaim Pabrik (km)": 41, "Real YouTube (km)": 32, "Tipe Baterai": "Lithium-ion", "Voltase (V)": "50.2", "Kapasitas (Ah)": "29.4"},
+        {"Merek & Tipe": "Yadea T9", "Kategori": "Motor", "Klaim Pabrik (km)": 100, "Real YouTube (km)": 75, "Tipe Baterai": "Graphene", "Voltase (V)": "72", "Kapasitas (Ah)": "38"}
     ]
     return pd.DataFrame(data)
 
@@ -73,7 +76,6 @@ def render_category_content(kategori, df_full, color_hex, icon):
                                  var_name="Jenis Data", value_name="Jarak (km)")
         
         # MENGUBAH GRAFIK MENJADI HORIZONTAL
-        # x diubah jadi Jarak, y diubah jadi Merek, dan ditambah orientation='h'
         fig = px.bar(df_melt, x="Jarak (km)", y="Merek & Tipe", color="Jenis Data", barmode="group",
                      orientation='h',
                      color_discrete_map={"Klaim Pabrik (km)": "#3366CC", "Real YouTube (km)": "#00CC66"},
@@ -85,14 +87,14 @@ def render_category_content(kategori, df_full, color_hex, icon):
             legend_title=None
         )
         
-        # Membalikkan urutan sumbu Y agar nilai terbesar (yang paling kiri di tabel) berada di paling atas grafik
         fig.update_yaxes(autorange="reversed")
         
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-        # 3. SETTING TABEL RATA KIRI (LEFT)
-        df_display = df_subset.drop(columns=["Kategori"]).reset_index(drop=True)
+        # 3. SETTING TABEL SPESIFIKASI BATERAI (RATA KIRI)
+        # Menghapus kolom kategori & angka km, hanya menampilkan data teknis baterai
+        df_display = df_subset[["Merek & Tipe", "Tipe Baterai", "Voltase (V)", "Kapasitas (Ah)"]].reset_index(drop=True)
         
         styled_df = df_display.style.set_properties(**{'text-align': 'left'})\
                                     .set_table_styles([{'selector': 'th', 'props': [('text-align', 'left')]}])
