@@ -48,41 +48,50 @@ st.write("---")
 
 # 2. KOMPARASI JARAK TEMPUH & VALIDASI (DIPISAH BERDASARKAN TAB)
 st.subheader("🏁 Real Range vs Klaim Brosur (Berdasarkan YouTube)")
-st.write("Data di bawah ini tidak lagi bercampur. Silakan klik tab **Mobil Listrik** atau **Motor Listrik**.")
 
 df_range = get_range_data()
 
 # Membuat Tab UI
-tab_mobil, tab_motor = st.tabs(["🚗 Kategori: Mobil Listrik", "🏍️ Kategori: Motor Listrik"])
+tab_mobil, tab_motor = st.tabs(["🚗 Mobil", "🏍️ Motor"])
 
 # --- FUNGSI HELPER UNTUK MERENDER ISI TAB ---
-def render_category_content(kategori, df_full):
-    # Filter data sesuai kategori
-    df_subset = df_full[df_full["Kategori"] == kategori]
+def render_category_content(kategori, df_full, color_hex, icon):
+    # 1. INJEKSI HTML UNTUK JUDUL BESAR & BERWARNA
+    st.markdown(
+        f"<h2 style='color: {color_hex}; margin-top: 0px;'>{icon} Kategori: {kategori} Listrik</h2>", 
+        unsafe_allow_html=True
+    )
+    
+    # 2. FILTER & SORTING DATA (Dari Jarak Tempuh Terbesar ke Terkecil)
+    df_subset = df_full[df_full["Kategori"] == kategori].sort_values(by="Real YouTube (km)", ascending=False)
     
     col1, col2 = st.columns([1.5, 1])
     
     with col1:
-        # Menyiapkan data untuk Plotly (unpivot)
         df_melt = df_subset.melt(id_vars=["Merek & Tipe"], 
                                  value_vars=["Klaim Pabrik (km)", "Real YouTube (km)"], 
                                  var_name="Jenis Data", value_name="Jarak (km)")
         
-        # Membuat Grafik Bar Bersebelahan (Side-by-side)
         fig = px.bar(df_melt, x="Merek & Tipe", y="Jarak (km)", color="Jenis Data", barmode="group",
                      color_discrete_map={"Klaim Pabrik (km)": "#3366CC", "Real YouTube (km)": "#00CC66"},
-                     text_auto=True) # Tambahan angka otomatis di atas batang
+                     text_auto=True)
         
         fig.update_layout(xaxis_title=None, yaxis_title="Jarak Tempuh (km)", legend_title=None)
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-        # Menampilkan Tabel di sebelah grafik
-        st.dataframe(df_subset.drop(columns=["Kategori"]), use_container_width=True, hide_index=True)
+        # 3. SETTING TABEL RATA TENGAH (CENTER)
+        df_display = df_subset.drop(columns=["Kategori"]).reset_index(drop=True)
+        
+        # Menggunakan Pandas Styler untuk membuat isi tabel rata tengah
+        styled_df = df_display.style.set_properties(**{'text-align': 'center'})\
+                                    .set_table_styles([{'selector': 'th', 'props': [('text-align', 'center')]}])
+        
+        st.dataframe(styled_df, use_container_width=True)
     
     st.write("---")
     
-    # Bagian Validasi Link YouTube Khusus Kategori Ini
+    # Bagian Validasi Link YouTube
     st.markdown(f"### ▶️ Validasi Video Pengujian {kategori}")
     cols = st.columns(4)
     for index, row in df_subset.reset_index().iterrows():
@@ -95,7 +104,9 @@ def render_category_content(kategori, df_full):
 
 # --- MENGISI KONTEN MASING-MASING TAB ---
 with tab_mobil:
-    render_category_content("Mobil", df_range)
+    # Mengirim parameter: Kategori, Data, Warna Biru (#3366CC), dan Ikon Mobil
+    render_category_content("Mobil", df_range, "#3366CC", "🚙")
 
 with tab_motor:
-    render_category_content("Motor", df_range)
+    # Mengirim parameter: Kategori, Data, Warna Merah (#FF4B4B), dan Ikon Motor
+    render_category_content("Motor", df_range, "#FF4B4B", "🛵")
