@@ -82,11 +82,12 @@ def render_category_content(kategori, df_full, color_hex, icon):
         fig.update_layout(
             xaxis_title="Jarak Tempuh (km)", 
             yaxis_title=None, 
-            legend_title=None
+            legend_title=None,
+            dragmode=False # Mencegah fitur drag/zoom
         )
         fig.update_yaxes(autorange="reversed")
         
-         # MENGHILANGKAN TOOLBAR DAN MEMATIKAN SCROLL ZOOM
+        # MENGHILANGKAN TOOLBAR DAN MEMATIKAN SCROLL ZOOM
         st.plotly_chart(
             fig, 
             use_container_width=True, 
