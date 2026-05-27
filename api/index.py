@@ -72,24 +72,28 @@ def render_category_content(kategori, df_full, color_hex, icon):
                                  value_vars=["Klaim Pabrik (km)", "Real YouTube (km)"], 
                                  var_name="Jenis Data", value_name="Jarak (km)")
         
-        fig = px.bar(df_melt, x="Merek & Tipe", y="Jarak (km)", color="Jenis Data", barmode="group",
+        # MENGUBAH GRAFIK MENJADI HORIZONTAL
+        # x diubah jadi Jarak, y diubah jadi Merek, dan ditambah orientation='h'
+        fig = px.bar(df_melt, x="Jarak (km)", y="Merek & Tipe", color="Jenis Data", barmode="group",
+                     orientation='h',
                      color_discrete_map={"Klaim Pabrik (km)": "#3366CC", "Real YouTube (km)": "#00CC66"},
                      text_auto=True)
         
-        # MEMBUAT TEKS MEREK MENJADI HORIZONTAL (xaxis_tickangle=0)
         fig.update_layout(
-            xaxis_title=None, 
-            yaxis_title="Jarak Tempuh (km)", 
-            legend_title=None,
-            xaxis_tickangle=0 
+            xaxis_title="Jarak Tempuh (km)", 
+            yaxis_title=None, 
+            legend_title=None
         )
+        
+        # Membalikkan urutan sumbu Y agar nilai terbesar (yang paling kiri di tabel) berada di paling atas grafik
+        fig.update_yaxes(autorange="reversed")
+        
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
         # 3. SETTING TABEL RATA KIRI (LEFT)
         df_display = df_subset.drop(columns=["Kategori"]).reset_index(drop=True)
         
-        # Mengubah text-align menjadi 'left'
         styled_df = df_display.style.set_properties(**{'text-align': 'left'})\
                                     .set_table_styles([{'selector': 'th', 'props': [('text-align', 'left')]}])
         
