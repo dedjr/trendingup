@@ -14,7 +14,14 @@ def get_monthly_sales_data():
         "Mobil Listrik": [1200, 1500, 2100, 1800, 2500, 3100, 3400, 4200, 4100, 4800, 5200, 6000],
         "Motor Listrik": [3500, 4100, 5000, 4800, 6200, 7500, 8100, 9500, 9200, 10500, 11200, 13000]
     }
-    return pd.DataFrame(data)
+    df = pd.DataFrame(data)
+    
+    # MEMAKSA URUTAN BULAN SECARA EKSPLISIT
+    bulan_order = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"]
+    df["Bulan"] = pd.Categorical(df["Bulan"], categories=bulan_order, ordered=True)
+    
+    return df.sort_values("Bulan")
+
 
 # --- 2. DATABASE JARAK TEMPUH & SPESIFIKASI BATERAI ---
 def get_range_data():
