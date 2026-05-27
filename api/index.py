@@ -28,6 +28,10 @@ def get_range_data():
 def render_category_content(kategori, df_full, color_hex, icon):
     st.markdown(f"<h2 style='color: {color_hex}; margin-top: 0px;'>{icon} Kategori: {kategori} Listrik</h2>", unsafe_allow_html=True)
     
+    # 1. Bersihkan spasi pada header
+    df_full.columns = df_full.columns.str.strip()
+    
+    # 2. Filter data
     df_subset = df_full[df_full["Kategori"] == kategori].sort_values(by="Real YouTube (km)", ascending=False)
     
     col1, col2 = st.columns([1.5, 1])
@@ -42,8 +46,14 @@ def render_category_content(kategori, df_full, color_hex, icon):
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': False, 'doubleClick': False})
 
     with col2:
-        df_display = df_subset[["Merek & Tipe", "Tipe Baterai", "Voltase (V)", "Kapasitas (Ah)"]].reset_index(drop=True)
-        st.table(df_display)
+        # 3. Format tabel agar angka Voltase dan Ah tampil natural (seperti di Sheets)
+        df_display = df_subset[["Merek & Tipe", "Tipe Baterai", "Voltase (V)", "Kapasitas (Ah)"]].copy()
+        
+        # Konversi ke string agar angka tidak diformat otomatis oleh Python
+        df_display["Voltase (V)"] = df_display["Voltase (V)"].astype(str).str.rstrip('0').str.rstrip('.')
+        df_display["Kapasitas (Ah)"] = df_display["Kapasitas (Ah)"].astype(str).str.rstrip('0').str.rstrip('.')
+        
+        st.table(df_display.reset_index(drop=True))
     
     st.write("---")
 
