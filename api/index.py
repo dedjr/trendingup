@@ -76,16 +76,22 @@ def render_category_content(kategori, df_full, color_hex, icon):
                      color_discrete_map={"Klaim Pabrik (km)": "#3366CC", "Real YouTube (km)": "#00CC66"},
                      text_auto=True)
         
-        fig.update_layout(xaxis_title=None, yaxis_title="Jarak Tempuh (km)", legend_title=None)
+        # MEMBUAT TEKS MEREK MENJADI HORIZONTAL (xaxis_tickangle=0)
+        fig.update_layout(
+            xaxis_title=None, 
+            yaxis_title="Jarak Tempuh (km)", 
+            legend_title=None,
+            xaxis_tickangle=0 
+        )
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
-        # 3. SETTING TABEL RATA TENGAH (CENTER)
+        # 3. SETTING TABEL RATA KIRI (LEFT)
         df_display = df_subset.drop(columns=["Kategori"]).reset_index(drop=True)
         
-        # Menggunakan Pandas Styler untuk membuat isi tabel rata tengah
-        styled_df = df_display.style.set_properties(**{'text-align': 'center'})\
-                                    .set_table_styles([{'selector': 'th', 'props': [('text-align', 'center')]}])
+        # Mengubah text-align menjadi 'left'
+        styled_df = df_display.style.set_properties(**{'text-align': 'left'})\
+                                    .set_table_styles([{'selector': 'th', 'props': [('text-align', 'left')]}])
         
         st.dataframe(styled_df, use_container_width=True)
     
@@ -104,9 +110,7 @@ def render_category_content(kategori, df_full, color_hex, icon):
 
 # --- MENGISI KONTEN MASING-MASING TAB ---
 with tab_mobil:
-    # Mengirim parameter: Kategori, Data, Warna Biru (#3366CC), dan Ikon Mobil
     render_category_content("Mobil", df_range, "#3366CC", "🚙")
 
 with tab_motor:
-    # Mengirim parameter: Kategori, Data, Warna Merah (#FF4B4B), dan Ikon Motor
     render_category_content("Motor", df_range, "#FF4B4B", "🛵")
