@@ -92,3 +92,7 @@ if data_berita:
 else:
     st.error("Gagal mengambil data berita atau feed sedang kosong.")
 
+# Trik agar Vercel tidak eror membaca fungsi top-level
+app = None
+
+
