@@ -1,13 +1,13 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
+import plotly.express as px
 
 st.set_page_config(page_title="EV Sales & Real Range Tracker", layout="wide")
 
 st.title("🔋 Dasbor Penjualan Bulanan & Real Range EV")
 st.write("Memantau tren penjualan bulanan dan mengungkap jarak tempuh asli kendaraan listrik berdasarkan pengujian di YouTube.")
 
-# --- 1. DATA PENJUALAN BULANAN (Silakan update angkanya setiap bulan) ---
+# --- 1. DATA PENJUALAN BULANAN ---
 def get_monthly_sales_data():
     data = {
         "Bulan": ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"],
@@ -16,18 +16,17 @@ def get_monthly_sales_data():
     }
     return pd.DataFrame(data)
 
-# --- 2. DATABASE JARAK TEMPUH (KLAIM VS REAL YOUTUBE) ---
+# --- 2. DATABASE JARAK TEMPUH ---
 def get_range_data():
-    # Angka Real YouTube diambil dari rata-rata reviewer otomotif Indonesia
     data = [
-        {"Merek & Tipe": "Wuling Air EV Long Range", "Kategori": "Mobil", "Klaim Pabrik (km)": 300, "Real YouTube (km)": 230},
-        {"Merek & Tipe": "Wuling Binguo 410km", "Kategori": "Mobil", "Klaim Pabrik (km)": 410, "Real YouTube (km)": 340},
-        {"Merek & Tipe": "Hyundai Ioniq 5 Signature", "Kategori": "Mobil", "Klaim Pabrik (km)": 451, "Real YouTube (km)": 390},
-        {"Merek & Tipe": "BYD Atto 3 Extended", "Kategori": "Mobil", "Klaim Pabrik (km)": 480, "Real YouTube (km)": 410},
+        {"Merek & Tipe": "Wuling Air EV Long", "Kategori": "Mobil", "Klaim Pabrik (km)": 300, "Real YouTube (km)": 230},
+        {"Merek & Tipe": "Wuling Binguo", "Kategori": "Mobil", "Klaim Pabrik (km)": 410, "Real YouTube (km)": 340},
+        {"Merek & Tipe": "Hyundai Ioniq 5", "Kategori": "Mobil", "Klaim Pabrik (km)": 451, "Real YouTube (km)": 390},
+        {"Merek & Tipe": "BYD Atto 3", "Kategori": "Mobil", "Klaim Pabrik (km)": 480, "Real YouTube (km)": 410},
         {"Merek & Tipe": "Neta V", "Kategori": "Mobil", "Klaim Pabrik (km)": 401, "Real YouTube (km)": 310},
         {"Merek & Tipe": "Omoda E5", "Kategori": "Mobil", "Klaim Pabrik (km)": 430, "Real YouTube (km)": 370},
         {"Merek & Tipe": "Alva One", "Kategori": "Motor", "Klaim Pabrik (km)": 70, "Real YouTube (km)": 50},
-        {"Merek & Tipe": "Alva Cervo (2 Baterai)", "Kategori": "Motor", "Klaim Pabrik (km)": 125, "Real YouTube (km)": 95},
+        {"Merek & Tipe": "Alva Cervo", "Kategori": "Motor", "Klaim Pabrik (km)": 125, "Real YouTube (km)": 95},
         {"Merek & Tipe": "Polytron Fox R", "Kategori": "Motor", "Klaim Pabrik (km)": 130, "Real YouTube (km)": 100},
         {"Merek & Tipe": "Gesits G1", "Kategori": "Motor", "Klaim Pabrik (km)": 50, "Real YouTube (km)": 38},
         {"Merek & Tipe": "Uwinfly T3", "Kategori": "Motor", "Klaim Pabrik (km)": 60, "Real YouTube (km)": 45},
@@ -47,41 +46,56 @@ st.line_chart(df_sales.set_index("Bulan"), use_container_width=True)
 
 st.write("---")
 
-# 2. KOMPARASI JARAK TEMPUH (KLAIM VS REAL)
+# 2. KOMPARASI JARAK TEMPUH & VALIDASI (DIPISAH BERDASARKAN TAB)
 st.subheader("🏁 Real Range vs Klaim Brosur (Berdasarkan YouTube)")
-st.write("Data ini dikompilasi dari hasil pengujian *real-world* hingga baterai habis oleh para *reviewer* di YouTube.")
+st.write("Data di bawah ini tidak lagi bercampur. Silakan klik tab **Mobil Listrik** atau **Motor Listrik**.")
 
 df_range = get_range_data()
 
-# Filter Interaktif
-kategori_filter = st.radio("Pilih Kategori Kendaraan:", ["Semua", "Mobil", "Motor"], horizontal=True)
-if kategori_filter != "Semua":
-    df_range = df_range[df_range["Kategori"] == kategori_filter]
+# Membuat Tab UI
+tab_mobil, tab_motor = st.tabs(["🚗 Kategori: Mobil Listrik", "🏍️ Kategori: Motor Listrik"])
 
-col1, col2 = st.columns([1, 1.2])
-
-with col1:
-    # Tabel Data
-    st.dataframe(df_range.drop(columns=["Kategori"]), use_container_width=True, hide_index=True)
-
-with col2:
-    # Visualisasi Bar Chart Perbandingan
-    chart_data = df_range.set_index("Merek & Tipe")[["Klaim Pabrik (km)", "Real YouTube (km)"]]
-    st.bar_chart(chart_data, color=["#FF4B4B", "#00CC66"], use_container_width=True)
-
-st.write("---")
-
-# 3. LINK PENCARIAN YOUTUBE OTOMATIS
-st.subheader("▶️ Validasi Video Pengujian di YouTube")
-st.write("Klik merek di bawah ini untuk langsung mencari video pengetesan jarak tempuhnya:")
-
-cols = st.columns(4)
-for index, row in df_range.iterrows():
-    model = row["Merek & Tipe"]
-    # Membuat query pencarian otomatis ke YouTube
-    query = f"test jarak tempuh asli {model} sampai habis".replace(" ", "+")
-    youtube_url = f"https://www.youtube.com/results?search_query={query}"
+# --- FUNGSI HELPER UNTUK MERENDER ISI TAB ---
+def render_category_content(kategori, df_full):
+    # Filter data sesuai kategori
+    df_subset = df_full[df_full["Kategori"] == kategori]
     
-    with cols[index % 4]:
-        st.markdown(f"📺 **[{model}]({youtube_url})**")
+    col1, col2 = st.columns([1.5, 1])
+    
+    with col1:
+        # Menyiapkan data untuk Plotly (unpivot)
+        df_melt = df_subset.melt(id_vars=["Merek & Tipe"], 
+                                 value_vars=["Klaim Pabrik (km)", "Real YouTube (km)"], 
+                                 var_name="Jenis Data", value_name="Jarak (km)")
+        
+        # Membuat Grafik Bar Bersebelahan (Side-by-side)
+        fig = px.bar(df_melt, x="Merek & Tipe", y="Jarak (km)", color="Jenis Data", barmode="group",
+                     color_discrete_map={"Klaim Pabrik (km)": "#3366CC", "Real YouTube (km)": "#00CC66"},
+                     text_auto=True) # Tambahan angka otomatis di atas batang
+        
+        fig.update_layout(xaxis_title=None, yaxis_title="Jarak Tempuh (km)", legend_title=None)
+        st.plotly_chart(fig, use_container_width=True)
 
+    with col2:
+        # Menampilkan Tabel di sebelah grafik
+        st.dataframe(df_subset.drop(columns=["Kategori"]), use_container_width=True, hide_index=True)
+    
+    st.write("---")
+    
+    # Bagian Validasi Link YouTube Khusus Kategori Ini
+    st.markdown(f"### ▶️ Validasi Video Pengujian {kategori}")
+    cols = st.columns(4)
+    for index, row in df_subset.reset_index().iterrows():
+        model = row["Merek & Tipe"]
+        query = f"test jarak tempuh asli {model} sampai habis".replace(" ", "+")
+        youtube_url = f"https://www.youtube.com/results?search_query={query}"
+        
+        with cols[index % 4]:
+            st.markdown(f"📺 **[{model}]({youtube_url})**")
+
+# --- MENGISI KONTEN MASING-MASING TAB ---
+with tab_mobil:
+    render_category_content("Mobil", df_range)
+
+with tab_motor:
+    render_category_content("Motor", df_range)
