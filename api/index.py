@@ -86,9 +86,16 @@ def render_category_content(kategori, df_full, color_hex, icon):
         )
         fig.update_yaxes(autorange="reversed")
         
-        # MENGHILANGKAN TOOLBAR (ZOOM, PAN, DOWNLOAD) DARI GRAFIK
-        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-
+         # MENGHILANGKAN TOOLBAR DAN MEMATIKAN SCROLL ZOOM
+        st.plotly_chart(
+            fig, 
+            use_container_width=True, 
+            config={
+                'displayModeBar': False, 
+                'scrollZoom': False,
+                'doubleClick': False
+            }
+        )
     with col2:
         # Menampilkan data spesifikasi teknik baterai
         df_display = df_subset[["Merek & Tipe", "Tipe Baterai", "Voltase (V)", "Kapasitas (Ah)"]].reset_index(drop=True)
