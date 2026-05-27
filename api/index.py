@@ -85,7 +85,9 @@ def render_category_content(kategori, df_full, color_hex, icon):
             legend_title=None
         )
         fig.update_yaxes(autorange="reversed")
-        st.plotly_chart(fig, use_container_width=True)
+        
+        # MENGHILANGKAN TOOLBAR (ZOOM, PAN, DOWNLOAD) DARI GRAFIK
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
     with col2:
         # Menampilkan data spesifikasi teknik baterai
@@ -94,7 +96,7 @@ def render_category_content(kategori, df_full, color_hex, icon):
         styled_df = df_display.style.set_properties(**{'text-align': 'left'})\
                                     .set_table_styles([{'selector': 'th', 'props': [('text-align', 'left')]}])
         
-        # MENGGUNAKAN st.table untuk menghilangkan fitur hover zoom/expand
+        # Menggunakan st.table untuk tabel statis (tanpa fitur hover zoom/expand)
         st.table(styled_df)
     
     st.write("---")
