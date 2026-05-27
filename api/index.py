@@ -44,26 +44,32 @@ try:
     tab_motor, tab_mobil = st.tabs(["🏍️ Motor", "🚗 Mobil"])
 
     def render_category_content(kategori, df_full, color_hex, icon):
-        st.markdown(f"<h2 style='color: {color_hex}; margin-top: 0px;'>{icon} Kategori: {kategori} Listrik</h2>", unsafe_allow_html=True)
-        
-        # Filter berdasarkan kategori
-        df_subset = df_full[df_full["Kategori"] == kategori].sort_values(by="Real YouTube (km)", ascending=False)
-        col1, col2 = st.columns([1.5, 1])
-        
-        with col1:
-            df_melt = df_subset.melt(id_vars=["Merek & Tipe"], value_vars=["Klaim Pabrik (km)", "Real YouTube (km)"], var_name="Jenis Data", value_name="Jarak (km)")
-            fig = px.bar(df_melt, x="Jarak (km)", y="Merek & Tipe", color="Jenis Data", barmode="group",
-                         orientation='h', color_discrete_map={"Klaim Pabrik (km)": "#3366CC", "Real YouTube (km)": "#00CC66"},
-                         text_auto=True)
-            fig.update_layout(xaxis_title="Jarak Tempuh (km)", yaxis_title=None, legend_title=None, dragmode=False)
-            fig.update_yaxes(autorange="reversed")
-            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': False, 'doubleClick': False})
+    st.markdown(f"<h2 style='color: {color_hex}; margin-top: 0px;'>{icon} Kategori: {kategori} Listrik</h2>", unsafe_allow_html=True)
+    
+    # 1. Bersihkan nama kolom dari spasi tambahan agar tidak error
+    df_full.columns = df_full.columns.str.strip()
+    
+    # 2. Filter data
+    df_subset = df_full[df_full["Kategori"] == kategori].sort_values(by="Real YouTube (km)", ascending=False)
+    
+    col1, col2 = st.columns([1.5, 1])
+    
+    with col1:
+        # Gunakan nama kolom yang sudah dipastikan tanpa spasi di kiri/kanan
+        df_melt = df_subset.melt(id_vars=["Merek & Tipe"], value_vars=["Klaim Pabrik (km)", "Real YouTube (km)"], var_name="Jenis Data", value_name="Jarak (km)")
+        fig = px.bar(df_melt, x="Jarak (km)", y="Merek & Tipe", color="Jenis Data", barmode="group",
+                     orientation='h', color_discrete_map={"Klaim Pabrik (km)": "#3366CC", "Real YouTube (km)": "#00CC66"},
+                     text_auto=True)
+        fig.update_layout(xaxis_title="Jarak Tempuh (km)", yaxis_title=None, legend_title=None, dragmode=False)
+        fig.update_yaxes(autorange="reversed")
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': False, 'doubleClick': False})
 
-        with col2:
-            df_display = df_subset[["Merek & Tipe", "Tipe Baterai", "Voltase (V)", "Kapasitas (Ah)"]].reset_index(drop=True)
-            st.table(df_display)
-        
-        st.write("---")
+    with col2:
+        df_display = df_subset[["Merek & Tipe", "Tipe Baterai", "Voltase (V)", "Kapasitas (Ah)"]].reset_index(drop=True)
+        st.table(df_display)
+    
+    st.write("---")
+
         st.markdown(f"### ▶️ Validasi Video Pengujian {kategori}")
         cols = st.columns(4)
         for index, row in df_subset.reset_index().iterrows():
