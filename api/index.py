@@ -5,9 +5,9 @@ import plotly.express as px
 st.set_page_config(page_title="EV Market & Real Range Tracker", layout="wide")
 
 st.title("🔋 Dasbor Market & Real Range EV")
-st.write("Memantau sebaran merek motor listrik di Indonesia dan mengungkap jarak tempuh asli berdasarkan pengujian di YouTube.")
+st.write("Memantau sebaran merek motor listrik di Indonesia dan mengungkap jarak tempuh asli.")
 
-# --- 1. DATA MARKET SHARE MOTOR LISTRIK (Tetap Statis) ---
+# 1. DATA MARKET SHARE (Statis)
 def get_market_share_data():
     data = {
         "Merek": ["Gesits", "Alva", "Polytron", "Uwinfly", "Yadea", "Lainnya"],
@@ -15,47 +15,24 @@ def get_market_share_data():
     }
     return pd.DataFrame(data)
 
-# --- 2. DATABASE DARI GOOGLE SHEETS ---
-# Link sudah dikonversi ke format CSV agar terbaca oleh Pandas
+# 2. DATA DARI GOOGLE SHEETS
 SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT_QqQI7h4687I-0r9z_JYeyIc_wtDcuH2PuOnmlgU9IZ8OMFENMSGGLWPsHZ0Z4IJz72O0rxXGMqgz/pub?output=csv"
 
-@st.cache_data(ttl=600) # Data di-refresh setiap 10 menit
+@st.cache_data(ttl=600)
 def get_range_data():
-    return pd.read_csv(SHEET_URL)
+    df = pd.read_csv(SHEET_URL)
+    df.columns = df.columns.str.strip() # Membersihkan spasi pada nama kolom
+    return df
 
-# ==========================================
-# --- TAMPILAN DASHBOARD ---
-# ==========================================
-
-# 1. GRAFIK MARKET SHARE
-st.subheader("📊 Populasi Merek Motor Listrik di Indonesia")
-df_market = get_market_share_data()
-fig_pie = px.pie(df_market, values='Unit Beredar', names='Merek', hole=0.4)
-fig_pie.update_layout(showlegend=True, margin=dict(t=0, b=0, l=0, r=0))
-st.plotly_chart(fig_pie, use_container_width=True, config={'displayModeBar': False})
-st.caption("Sumber Data: Estimasi Populasi Unit Industri (AISI/Data Pasar 2026)")
-
-st.write("---")
-
-# 2. KOMPARASI JARAK TEMPUH & VALIDASI
-st.subheader("🏁 Real Range vs Klaim Brosur (Data dari Google Sheets)")
-try:
-    df_range = get_range_data()
-    tab_motor, tab_mobil = st.tabs(["🏍️ Motor", "🚗 Mobil"])
-
-    def render_category_content(kategori, df_full, color_hex, icon):
+# FUNGSI TAMPILAN
+def render_category_content(kategori, df_full, color_hex, icon):
     st.markdown(f"<h2 style='color: {color_hex}; margin-top: 0px;'>{icon} Kategori: {kategori} Listrik</h2>", unsafe_allow_html=True)
     
-    # 1. Bersihkan nama kolom dari spasi tambahan agar tidak error
-    df_full.columns = df_full.columns.str.strip()
-    
-    # 2. Filter data
     df_subset = df_full[df_full["Kategori"] == kategori].sort_values(by="Real YouTube (km)", ascending=False)
     
     col1, col2 = st.columns([1.5, 1])
     
     with col1:
-        # Gunakan nama kolom yang sudah dipastikan tanpa spasi di kiri/kanan
         df_melt = df_subset.melt(id_vars=["Merek & Tipe"], value_vars=["Klaim Pabrik (km)", "Real YouTube (km)"], var_name="Jenis Data", value_name="Jarak (km)")
         fig = px.bar(df_melt, x="Jarak (km)", y="Merek & Tipe", color="Jenis Data", barmode="group",
                      orientation='h', color_discrete_map={"Klaim Pabrik (km)": "#3366CC", "Real YouTube (km)": "#00CC66"},
@@ -70,18 +47,22 @@ try:
     
     st.write("---")
 
-        st.markdown(f"### ▶️ Validasi Video Pengujian {kategori}")
-        cols = st.columns(4)
-        for index, row in df_subset.reset_index().iterrows():
-            model = row["Merek & Tipe"]
-            query = f"test jarak tempuh asli {model} sampai habis".replace(" ", "+")
-            with cols[index % 4]:
-                st.markdown(f"📺 **[{model}](https://www.youtube.com/results?search_query={query})**")
+# --- TAMPILAN UTAMA ---
+df_market = get_market_share_data()
+st.subheader("📊 Populasi Merek Motor Listrik")
+fig_pie = px.pie(df_market, values='Unit Beredar', names='Merek', hole=0.4)
+st.plotly_chart(fig_pie, use_container_width=True, config={'displayModeBar': False})
 
+st.write("---")
+
+try:
+    df_range = get_range_data()
+    tab_motor, tab_mobil = st.tabs(["🏍️ Motor", "🚗 Mobil"])
+    
     with tab_motor:
         render_category_content("Motor", df_range, "#FF4B4B", "🛵")
     with tab_mobil:
         render_category_content("Mobil", df_range, "#3366CC", "🚙")
-
+        
 except Exception as e:
-    st.error("Gagal memuat data dari Google Sheets. Pastikan format kolom di Sheets sesuai dengan kode.")
+    st.error(f"Gagal memuat data: {e}")
