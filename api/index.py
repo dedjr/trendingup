@@ -2,26 +2,18 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-st.set_page_config(page_title="EV Sales & Real Range Tracker", layout="wide")
+st.set_page_config(page_title="EV Market & Real Range Tracker", layout="wide")
 
-st.title("🔋 Dasbor Penjualan Bulanan & Real Range EV")
-st.write("Memantau tren penjualan bulanan dan mengungkap jarak tempuh asli kendaraan listrik berdasarkan pengujian di YouTube.")
+st.title("🔋 Dasbor Market & Real Range EV")
+st.write("Memantau sebaran merek motor listrik di Indonesia dan mengungkap jarak tempuh asli berdasarkan pengujian di YouTube.")
 
-# --- 1. DATA PENJUALAN BULANAN ---
-def get_monthly_sales_data():
+# --- 1. DATA MARKET SHARE MOTOR LISTRIK ---
+def get_market_share_data():
     data = {
-        "Bulan": ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"],
-        "Mobil Listrik": [1200, 1500, 2100, 1800, 2500, 3100, 3400, 4200, 4100, 4800, 5200, 6000],
-        "Motor Listrik": [3500, 4100, 5000, 4800, 6200, 7500, 8100, 9500, 9200, 10500, 11200, 13000]
+        "Merek": ["Gesits", "Alva", "Polytron", "Uwinfly", "Yadea", "Lainnya"],
+        "Unit Beredar": [25000, 15000, 12000, 45000, 20000, 18000]
     }
-    df = pd.DataFrame(data)
-    
-    # MEMAKSA URUTAN BULAN SECARA EKSPLISIT
-    bulan_order = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"]
-    df["Bulan"] = pd.Categorical(df["Bulan"], categories=bulan_order, ordered=True)
-    
-    return df.sort_values("Bulan")
-
+    return pd.DataFrame(data)
 
 # --- 2. DATABASE JARAK TEMPUH & SPESIFIKASI BATERAI ---
 def get_range_data():
@@ -49,87 +41,52 @@ def get_range_data():
 # --- TAMPILAN DASHBOARD ---
 # ==========================================
 
-# 1. GRAFIK PENJUALAN BULANAN
-st.subheader("📈 Tren Penjualan EV Bulanan")
-df_sales = get_monthly_sales_data()
-st.line_chart(df_sales.set_index("Bulan"), use_container_width=True)
+# 1. GRAFIK MARKET SHARE MOTOR
+st.subheader("📊 Populasi Merek Motor Listrik di Indonesia")
+df_market = get_market_share_data()
+fig_pie = px.pie(df_market, values='Unit Beredar', names='Merek', hole=0.4)
+fig_pie.update_layout(showlegend=True, margin=dict(t=0, b=0, l=0, r=0))
+st.plotly_chart(fig_pie, use_container_width=True, config={'displayModeBar': False})
+st.caption("Sumber Data: Estimasi Populasi Unit Industri (AISI/Data Pasar 2026)")
 
 st.write("---")
 
-# 2. KOMPARASI JARAK TEMPUH & VALIDASI (DIPISAH BERDASARKAN TAB)
+# 2. KOMPARASI JARAK TEMPUH & VALIDASI
 st.subheader("🏁 Real Range vs Klaim Brosur (Berdasarkan YouTube)")
-
 df_range = get_range_data()
-
-# TABS ORDER: Menempatkan Motor di depan Mobil
 tab_motor, tab_mobil = st.tabs(["🏍️ Motor", "🚗 Mobil"])
 
-# --- FUNGSI HELPER UNTUK MERENDER ISI TAB ---
 def render_category_content(kategori, df_full, color_hex, icon):
-    st.markdown(
-        f"<h2 style='color: {color_hex}; margin-top: 0px;'>{icon} Kategori: {kategori} Listrik</h2>", 
-        unsafe_allow_html=True
-    )
+    st.markdown(f"<h2 style='color: {color_hex}; margin-top: 0px;'>{icon} Kategori: {kategori} Listrik</h2>", unsafe_allow_html=True)
     
-    # Filter & urutkan berdasarkan jarak tempuh YouTube tertinggi
     df_subset = df_full[df_full["Kategori"] == kategori].sort_values(by="Real YouTube (km)", ascending=False)
-    
     col1, col2 = st.columns([1.5, 1])
     
     with col1:
-        df_melt = df_subset.melt(id_vars=["Merek & Tipe"], 
-                                 value_vars=["Klaim Pabrik (km)", "Real YouTube (km)"], 
-                                 var_name="Jenis Data", value_name="Jarak (km)")
-        
+        df_melt = df_subset.melt(id_vars=["Merek & Tipe"], value_vars=["Klaim Pabrik (km)", "Real YouTube (km)"], var_name="Jenis Data", value_name="Jarak (km)")
         fig = px.bar(df_melt, x="Jarak (km)", y="Merek & Tipe", color="Jenis Data", barmode="group",
-                     orientation='h',
-                     color_discrete_map={"Klaim Pabrik (km)": "#3366CC", "Real YouTube (km)": "#00CC66"},
+                     orientation='h', color_discrete_map={"Klaim Pabrik (km)": "#3366CC", "Real YouTube (km)": "#00CC66"},
                      text_auto=True)
-        
-        fig.update_layout(
-            xaxis_title="Jarak Tempuh (km)", 
-            yaxis_title=None, 
-            legend_title=None,
-            dragmode=False # Mencegah fitur drag/zoom
-        )
+        fig.update_layout(xaxis_title="Jarak Tempuh (km)", yaxis_title=None, legend_title=None, dragmode=False)
         fig.update_yaxes(autorange="reversed")
-        
-        # MENGHILANGKAN TOOLBAR DAN MEMATIKAN SCROLL ZOOM
-        st.plotly_chart(
-            fig, 
-            use_container_width=True, 
-            config={
-                'displayModeBar': False, 
-                'scrollZoom': False,
-                'doubleClick': False
-            }
-        )
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False, 'scrollZoom': False, 'doubleClick': False})
+
     with col2:
-        # Menampilkan data spesifikasi teknik baterai
         df_display = df_subset[["Merek & Tipe", "Tipe Baterai", "Voltase (V)", "Kapasitas (Ah)"]].reset_index(drop=True)
-        
         styled_df = df_display.style.set_properties(**{'text-align': 'left'})\
                                     .set_table_styles([{'selector': 'th', 'props': [('text-align', 'left')]}])
-        
-        # Menggunakan st.table untuk tabel statis (tanpa fitur hover zoom/expand)
         st.table(styled_df)
     
     st.write("---")
-    
-    # Bagian Validasi Link YouTube
     st.markdown(f"### ▶️ Validasi Video Pengujian {kategori}")
     cols = st.columns(4)
     for index, row in df_subset.reset_index().iterrows():
         model = row["Merek & Tipe"]
         query = f"test jarak tempuh asli {model} sampai habis".replace(" ", "+")
-        youtube_url = f"https://www.youtube.com/results?search_query={query}"
-        
         with cols[index % 4]:
-            st.markdown(f"📺 **[{model}]({youtube_url})**")
+            st.markdown(f"📺 **[{model}](https://www.youtube.com/results?search_query={query})**")
 
-# --- MENGISI KONTEN MASING-MASING TAB (Urutan Motor didahulukan) ---
 with tab_motor:
     render_category_content("Motor", df_range, "#FF4B4B", "🛵")
-
 with tab_mobil:
     render_category_content("Mobil", df_range, "#3366CC", "🚙")
